@@ -351,6 +351,14 @@ export default class Select extends React.Component {
     return selectedItems.find(x => this.getItemId(x) === this.getItemId(item));
   };
 
+  // If any items have keepAtTop property specified, add them to the top of the results
+  // Useful for "Select All" items etc
+  moveKeepAtTopItemsToTop = (items) => {
+    const keepAtTopItems = items.filter(i => !!i.keepAtTop);
+    const rest = items.filter(i => !i.keepAtTop);
+    return [...keepAtTopItems, ...rest];
+  }
+
   onSearchChange = searchValue => {
     const { items, keyMap } = this.props;
     const searchField = keyMap ? keyMap.title : 'title';
@@ -378,10 +386,15 @@ export default class Select extends React.Component {
       return {...filtered};
     }, { startingWith: [], including: []});
 
-    const arrayFinal = [...startingWith, ...including];
+    let filteredItems = [...startingWith, ...including];
+
+    const shouldMoveSomeItemsToTop = filteredItems.some(i => !!i.keepAtTop);
+    if (shouldMoveSomeItemsToTop) {
+      filteredItems = this.moveKeepAtTopItemsToTop(filteredItems);
+    }
 
     this.setState({
-      items: arrayFinal,
+      items: filteredItems,
       isFiltering: !!searchValue,
       searchValue,
     });
@@ -619,6 +632,11 @@ Select.propTypes = {
     PropTypes.shape({
       id: PropTypes.string,
       title: PropTypes.string,
+      /**
+       * Force this item to stay at the top of the items list regardless of search order.
+       * Useful for things like "Select All" items etc.
+       * */
+      keepAtTop: PropTypes.number,
     })
   ).isRequired,
 
